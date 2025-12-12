@@ -33,6 +33,8 @@ The smart contract lives here:
 
 ## Getting started
 
+### Option A: Run locally
+
 ### 1. Install stuff
 
 ```bash
@@ -56,6 +58,21 @@ npm run dev
 ```
 
 Then open [http://localhost:3000](http://localhost:3000) and connect your wallet.
+
+### Option B: Run in Docker (isolated) 🐳
+
+If you want extra security/isolation:
+
+```bash
+# Build and run in Docker
+docker-compose up
+
+# Or manually
+docker build -t fhe-chat .
+docker run -p 3000:3000 -v $(pwd):/app fhe-chat
+```
+
+This runs everything in an isolated container. See [SECURITY.md](./SECURITY.md) for more info.
 
 ### 4. Deploy your own contract (optional)
 
