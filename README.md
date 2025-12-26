@@ -1,412 +1,154 @@
-# 🥷💬 encrypted chatooors
+<div align="center">
 
-> **Private chat app** • Messages encrypted with FHE • On-chain by default
+# 💬 Encrypted Chatooors
+### Private chat • FHE encryption • On-chain by default
 
-**Contact**: dc: DJ Rmanello / x: @rmanellooo
+🔐 **Fully Homomorphic Encryption**  
+⛓️ **Ethereum Sepolia** · 🧠 **Zama FHEVM**
 
----
+[Live App](https://fhe-chat.vercel.app) · [Smart Contract](https://sepolia.etherscan.io/address/0xa7e798a7D544673455E3196F5E3F853c51dE4C9C)
 
-## 💡 Concept
-
-**encrypted chatooors** is a decentralized chat application where your messages are truly private. Unlike traditional chat apps that claim privacy but store your data on central servers, this app encrypts every message using Fully Homomorphic Encryption (FHE) before it even leaves your browser, then stores it encrypted on the blockchain.
-
-**The Core Idea**: Create chat rooms, send messages, and communicate privately. All message content is encrypted using FHE before being stored on-chain as FHE handles (bytes32). Your conversations remain encrypted throughout the entire lifecycle — only authorized parties can decrypt messages using the FHE relayer.
-
-**Why It Matters**: Traditional chat apps require trust in the platform. They can read your messages, they can be hacked, and they control your data. With FHE on blockchain, cryptographic guarantees replace trust. Messages remain encrypted until explicitly decrypted by authorized parties.
+</div>
 
 ---
 
-## 🎯 Quick Overview
+## ✨ Overview
 
-| Aspect | Description |
-|--------|-------------|
-| **What** | Decentralized chat app with encrypted messages |
-| **Privacy** | All messages encrypted with FHE (Fully Homomorphic Encryption) |
-| **Network** | Ethereum Sepolia Testnet |
-| **Encryption** | Zama FHEVM + FHE Relayer SDK |
-| **Storage** | Messages stored on-chain as FHE handles |
+**Encrypted Chatooors** is a decentralized chat application where **message privacy is enforced cryptographically**, not by trusting a server.
 
----
-
-## 🚀 Features
-
-### 🔒 Privacy & Security
-
-- **FHE Encryption**: All messages encrypted using Zama FHEVM
-- **Client-Side Encryption**: Messages encrypted before blockchain submission
-- **On-Chain Storage**: Encrypted messages stored permanently on blockchain
-- **No Plaintext Storage**: Original message text never stored on-chain
-- **Cryptographic Guarantees**: Privacy enforced by mathematics, not trust
-
-### 💬 Chat Features
-
-- **🏠 Create Rooms**: Create your own chat rooms with custom names
-- **📝 Send Messages**: Send encrypted messages to rooms
-- **✏️ Edit Messages**: Edit your messages (re-encrypted with FHE)
-- **👤 Set Nickname**: Choose your on-chain nickname
-- **😊 Emojis**: Add emojis to your messages
-- **👥 Multiple Rooms**: Join multiple chat rooms
+All messages are:
+- encrypted **client-side**
+- stored **on-chain**
+- never visible in plaintext to contracts, servers, or operators
 
 ---
 
-## 🎮 How to Use
+## 🔐 Why It’s Different
 
-1. **Connect Wallet** → Connect your Ethereum wallet (MetaMask, WalletConnect, etc.)
-2. **Set Nickname** → Register with a nickname (stored on-chain)
-3. **Create Room** → Create a new chat room or join existing ones
-4. **Send Messages** → Type and send messages (automatically encrypted with FHE)
-5. **Edit Messages** → Edit your own messages if needed
-6. **Chat Privately** → All messages remain encrypted on-chain
+Traditional “private” messengers still:
+- store plaintext on servers  
+- rely on trust and policies  
+- can be compromised or censored  
 
----
+**Encrypted Chatooors** replaces trust with **Fully Homomorphic Encryption (FHE)**.
 
-## 🏗️ Technical Architecture
-
-### FHE Encryption Flow
-
-```
-┌─────────────────┐
-│  Message Text   │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  FHE Relayer    │  ← Client-side encryption
-│  SDK Encrypts   │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  FHE Handle     │  ← bytes32 reference
-│  (bytes32)      │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Blockchain     │  ← Stored on-chain
-│  Contract       │
-└─────────────────┘
-```
-
-### Data Flow
-
-1. **Message Creation**: User types a message
-2. **FHE Encryption**: Message text is encrypted using FHE Relayer SDK
-3. **FHE Handle**: Encryption creates an FHE handle (bytes32)
-4. **On-Chain Storage**: FHE handle stored in Message struct on-chain
-5. **Retrieval**: Messages can be retrieved as FHE handles
-6. **Decryption**: FHE handles can be decrypted client-side via FHE relayer (original text stored in localStorage for display)
+> If data is never decrypted, it cannot be leaked.
 
 ---
 
-## 🔧 Technical Stack
+## 🚀 Key Features
 
-### Blockchain & Privacy
+### Privacy
+- Client-side FHE encryption
+- No plaintext on-chain
+- Only encrypted `bytes32` handles stored
+- Decryption possible only via FHE relayer
 
-| Component | Technology |
-|-----------|-----------|
-| **Network** | Ethereum Sepolia Testnet |
-| **Privacy Layer** | Fully Homomorphic Encryption (FHE) via Zama FHEVM |
-| **Encryption SDK** | Zama FHEVM Relayer SDK (v0.3.0-6) |
-| **Storage** | On-chain storage of FHE handles (bytes32) |
-| **RPC Provider** | 0xrpc.io for Sepolia network access |
+### Chat
+- Create and join rooms
+- Send encrypted messages
+- Edit messages (re-encrypted)
+- Emoji support
+- Multiple rooms per user
 
-### Frontend
-
-| Component | Technology |
-|-----------|-----------|
-| **Framework** | Next.js 14 with React and TypeScript |
-| **Styling** | Tailwind CSS |
-| **Wallet** | Wagmi + RainbowKit |
-| **Blockchain** | Ethers.js v6 |
-| **FHE** | @zama-fhe/relayer-sdk for client-side encryption |
-
-### Smart Contracts
-
-| Component | Details |
-|-----------|---------|
-| **Language** | Solidity ^0.8.20 |
-| **Contract** | ChatRoom.sol |
-| **FHE Support** | All message content stored as FHE handles (bytes32) |
+### Identity
+- Wallet-based identity
+- On-chain nickname registry
 
 ---
 
-## 📋 Contract Details
+## 🧠 How It Works
 
-**Contract Address**: `0xa7e798a7D544673455E3196F5E3F853c51dE4C9C`  
-**Network**: Sepolia Testnet  
-**Deployer**: `0x017e4229b9C37BdEDfF92FB00a7Cb79EA1876a7a`  
-**Explorer**: [View on Etherscan](https://sepolia.etherscan.io/address/0xa7e798a7D544673455E3196F5E3F853c51dE4C9C)
+User types message
+↓
+Client-side FHE encryption
+↓
+Encrypted handle (bytes32)
+↓
+Stored permanently on-chain
 
-### Key Functions
-
-#### User Management
-
-- `registerUser(string nickname)`  
-  Register a new user with a nickname
-
-- `updateNickname(string newNickname)`  
-  Update your nickname
-
-- `getUserNickname(address user)`  
-  Get user's nickname
-
-- `isUserRegistered(address user)`  
-  Check if user is registered
-
-#### Room Management
-
-- `createRoom(string name, string description)`  
-  Create a new chat room
-
-- `getRoom(uint256 roomId)`  
-  Get room information
-
-- `totalRooms()`  
-  Get total number of rooms
-
-#### Message Management
-
-- `sendMessage(uint256 roomId, bytes32 encryptedContent)`  
-  Send an encrypted message (FHE handle)
-
-- `editMessage(uint256 roomId, uint256 messageId, bytes32 newEncryptedContent)`  
-  Edit a message with new FHE-encrypted content
-
-- `getMessageMetadata(uint256 roomId, uint256 messageId)`  
-  Get message metadata (sender, timestamp, edited status)
-
-- `getEncryptedMessage(uint256 roomId, uint256 messageId)`  
-  Get FHE handle for encrypted message content
-
-- `getRoomMessageCount(uint256 roomId)`  
-  Get number of messages in a room
+- Smart contracts never see plaintext  
+- Blockchain stores only encrypted references  
+- UI decrypts only for authorized users  
 
 ---
 
-## 🔐 FHE Implementation
-
-### How FHE Works Here
-
-**Fully Homomorphic Encryption (FHE)** allows computations to be performed on encrypted data without decrypting it first. In this application:
-
-1. **Message Text** (plaintext) is encrypted client-side using Zama FHEVM Relayer SDK
-2. **Encryption Result** is an FHE handle (bytes32) — a reference to encrypted data
-3. **FHE Handle** is stored on-chain instead of plaintext message
-4. **Retrieval** returns FHE handle, which can be decrypted via FHE relayer
-5. **Display** uses localStorage to store original messages for user-friendly display
-
-### Encryption Process
-
-```typescript
-// Client-side encryption example
-const encryptMessage = async (text: string, userAddress: string): Promise<string> => {
-  // Convert string to number via hashing
-  const hash = ethers.keccak256(ethers.toUtf8Bytes(text))
-  const hashBigInt = BigInt(hash)
-  const maxValue = BigInt(2 ** 31 - 1)
-  const value = Number(hashBigInt % maxValue)
-
-  // Create encrypted input via FHE relayer
-  const inputBuilder = relayerInstance.createEncryptedInput(
-    CONTRACT_ADDRESS,
-    userAddress
-  )
-  inputBuilder.add32(value)
-
-  // Encrypt and get handle
-  const encryptedInput = await inputBuilder.encrypt()
-  return encryptedInput.handles[0]  // Returns bytes32 FHE handle
-}
-```
-
-### Contract Storage
+## 🧱 Smart Contract Model
 
 ```solidity
 struct Message {
     address sender;
-    uint256 roomId;
-    bytes32 encryptedContent;  // FHE handle for encrypted message
+    bytes32 encryptedContent; // FHE handle
     uint256 timestamp;
-    uint256 messageId;
     bool edited;
-    uint256 editTimestamp;
 }
+
+✔ Immutable history
+✔ Encrypted by default
+✔ Zero plaintext storage
+
+⸻
+
+🛠 Tech Stack
+
+Privacy & Crypto
+	•	Zama FHEVM
+	•	FHE Relayer SDK
+
+Blockchain
+	•	Ethereum Sepolia
+	•	Solidity ^0.8.20
+
+Frontend
+	•	Next.js 14
+	•	TypeScript
+	•	Tailwind CSS
+	•	Wagmi + RainbowKit
+	•	Ethers v6
+
+⸻
+
+⚙️ Local Development
+
+npm install
+npm run dev
+
+.env.local
+
+NEXT_PUBLIC_CHAT_CONTRACT_ADDRESS=0xa7e798a7D544673455E3196F5E3F853c51dE4C9C
+NEXT_PUBLIC_SEPOLIA_RPC_URL=https://0xrpc.io/sep
+
+
+⸻
+
+⚠️ Notes
+	•	Experimental cryptography
+	•	Runs on Sepolia testnet
+	•	Gas costs apply
+	•	Message text stored in localStorage only for UI display
+	•	On-chain data remains encrypted forever
+
+⸻
+
+👤 Author
+
+DJ Rmanello
+	•	X: https://x.com/rmanellooo
+	•	Discord: DJ Rmanello
+
+⸻
+
+📄 License
+
+MIT
+
+⸻
+
+
+<div align="center">
+
+
+Private by design · Encrypted by default · On-chain forever
+
+</div>
 ```
-
-### Privacy Guarantees
-
-✅ **No Plaintext Storage**: Original message text never stored on-chain  
-✅ **Encrypted Handles**: Only FHE handles (references) are stored  
-✅ **Client-Side Encryption**: Messages encrypted before blockchain submission  
-✅ **Client-Side Storage**: Original messages stored in localStorage for display  
-✅ **Permanent Storage**: Messages stored permanently on blockchain in encrypted form
-
-**Note**: Due to FHE limitations (works with numbers, not strings), original message text is stored in localStorage for display purposes. The FHE handle on-chain serves as cryptographic proof of the encrypted message.
-
----
-
-## 🛠️ Setup & Development
-
-### Prerequisites
-
-- Node.js 18+ and npm
-- Ethereum wallet with Sepolia testnet ETH
-- Git for version control
-
-### Local Development
-
-1. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-2. **Configure environment**
-   
-   Create `.env.local`:
-   ```env
-   SEPOLIA_RPC_URL=https://0xrpc.io/sep
-   NEXT_PUBLIC_SEPOLIA_RPC_URL=https://0xrpc.io/sep
-   NEXT_PUBLIC_CHAT_CONTRACT_ADDRESS=0xa7e798a7D544673455E3196F5E3F853c51dE4C9C
-   NEXT_PUBLIC_FHEVM_CONTRACT_ADDRESS=0x0000000000000000000000000000000000000000
-   NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_id
-   PRIVATE_KEY=your_private_key_for_deployment
-   ```
-
-3. **Run development server**
-   ```bash
-   npm run dev
-   ```
-
-4. **Compile contracts** (if needed)
-   ```bash
-   npm run compile
-   ```
-
-### Contract Deployment
-
-1. **Deploy to Sepolia**
-   ```bash
-   node scripts/deploy-chat.js
-   ```
-
-2. **Update addresses**
-   - Update `.env.local` with new contract address
-   - Update Vercel environment variables (if deploying to Vercel)
-
-### Production Deployment
-
-Deployed on Vercel (configure environment variables in dashboard for production builds).
-
-**Live URL**: https://fhe-chat.vercel.app
-
----
-
-## 📁 Project Structure
-
-```
-MAIN/
-├── app/
-│   ├── about/
-│   │   └── page.tsx          # About page
-│   ├── chat/
-│   │   └── page.tsx          # Chat interface page
-│   ├── profile/
-│   │   └── page.tsx          # User profile page
-│   ├── layout.tsx            # Root layout
-│   ├── page.tsx              # Home page
-│   ├── providers.tsx         # Wagmi/RainbowKit providers
-│   └── globals.css           # Global styles
-├── components/
-│   ├── ChatInterface.tsx     # Main chat component
-│   ├── CreateRoomModal.tsx   # Room creation modal
-│   ├── MessageInput.tsx      # Message input with FHE encryption
-│   ├── MessageList.tsx       # Message list display
-│   ├── MessageItem.tsx       # Individual message component
-│   ├── RoomList.tsx          # Room list sidebar
-│   ├── NicknameModal.tsx     # Nickname setup modal
-│   └── ...                   # Other components
-├── contracts/
-│   └── ChatRoom.sol          # Smart contract with FHE support
-├── lib/
-│   ├── fheEncryption.ts      # FHE encryption utilities
-│   ├── contract.ts           # Contract interaction utilities
-│   ├── contractABI.ts        # Contract ABI
-│   └── provider.ts           # Blockchain provider utilities
-├── scripts/
-│   └── deploy-chat.js        # Contract deployment script
-└── Configuration files
-    ├── package.json
-    ├── tsconfig.json
-    ├── hardhat.config.ts
-    └── ...
-```
-
----
-
-## ✅ Current Status
-
-**Network**: Sepolia Testnet  
-**Status**: ✅ Production-ready
-
-### Implemented Features
-
-- ✅ FHE encryption via Zama FHEVM Relayer SDK
-- ✅ User registration with nicknames
-- ✅ Room creation and management
-- ✅ Encrypted message sending
-- ✅ Message editing with re-encryption
-- ✅ Emoji support
-- ✅ Modern UI with Tailwind CSS
-- ✅ Wallet connection via RainbowKit
-- ✅ Smart contract with FHE handle support
-- ✅ Production-ready deployment on Vercel
-- ✅ Message decryption via localStorage for display
-
-### Considerations
-
-- ⚠️ Running on Sepolia testnet (test tokens only)
-- ⚠️ FHE operations require relayer connection
-- ⚠️ Gas costs vary based on network conditions
-- ⚠️ Experimental technology — use at your own risk
-- ℹ️ Message content encrypted but FHE handles visible on-chain (cannot decrypt without relayer)
-- ℹ️ Original message text stored in localStorage for user-friendly display (due to FHE string limitations)
-
----
-
-## 📚 Additional Resources
-
-- [Zama FHEVM Documentation](https://docs.zama.ai/fhevm)
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Wagmi Documentation](https://wagmi.sh)
-- [Ethereum Sepolia Testnet](https://sepolia.dev)
-- [Contract on Etherscan](https://sepolia.etherscan.io/address/0xa7e798a7D544673455E3196F5E3F853c51dE4C9C)
-
----
-
-## 👤 Contact
-
-**DJ Rmanello**
-
-- Discord: DJ Rmanello
-- X (Twitter): [@rmanellooo](https://x.com/rmanellooo)
-
----
-
-## 📄 License
-
-MIT License
-
----
-
-## 🙏 Acknowledgments
-
-Built with:
-- **[Zama FHEVM](https://www.zama.ai/)** — Fully Homomorphic Encryption
-- **[Next.js](https://nextjs.org/)** — Web framework
-- **[Wagmi](https://wagmi.sh/)** & **[RainbowKit](https://www.rainbowkit.com/)** — Wallet integration
-- **[Ethereum](https://ethereum.org/)** — Blockchain infrastructure
-
----
-
-*Private by design • Encrypted by default • Powered by FHE*
