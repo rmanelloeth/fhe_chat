@@ -33,11 +33,11 @@ export default function ChatPage() {
       const provider = getReadOnlyProvider()
       const contract = getChatContractReadOnly(provider)
       
-      // check registration with 10 second timeout
+      // check registration with 15 second timeout
       const registered = await Promise.race([
         contract.isUserRegistered(address),
         new Promise<boolean>((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout')), 10000)
+          setTimeout(() => reject(new Error('Timeout')), 15000)
         )
       ]) as boolean
       
@@ -51,7 +51,7 @@ export default function ChatPage() {
       }
     } catch (error: any) {
       console.error('Error checking registration:', error)
-      // if check fails, show the modal anyway
+      // if check fails, allow user to proceed but show modal for registration
       setIsRegistered(false)
       setShowNicknameModal(true)
     } finally {

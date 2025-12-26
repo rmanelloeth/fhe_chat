@@ -8,7 +8,7 @@ import Footer from '@/components/Footer'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'encrypted chatooors - Private Encrypted Messaging',
+  title: 'encrypted chatooors',
   description: 'Private, encrypted messaging powered by Fully Homomorphic Encryption and blockchain technology',
 }
 

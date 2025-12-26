@@ -5,6 +5,7 @@ import { useAccount } from 'wagmi'
 import { getChatContractReadOnly } from '@/lib/contract'
 import { getReadOnlyProvider } from '@/lib/provider'
 import { formatDistanceToNow } from 'date-fns'
+import { getOriginalMessage, getOriginalMessageByHandle } from '@/lib/fheEncryption'
 import MessageItem from './MessageItem'
 
 interface Message {
@@ -88,17 +89,24 @@ export default function MessageList({ roomId }: MessageListProps) {
       })
       setNicknames(nicknameMap)
       
-      // decode hex back to text
-      const decryptedMessages = loadedMessages.map(msg => ({
-        id: msg.id,
-        roomId: roomId,
-        sender: msg.sender,
-        timestamp: msg.timestamp,
-        edited: msg.edited,
-        editTimestamp: msg.editTimestamp,
-        encryptedContent: msg.encryptedContent,
-        decryptedContent: decryptMessage(msg.encryptedContent),
-      }))
+      // Decrypt messages using stored original text
+      const decryptedMessages = loadedMessages.map(msg => {
+        // Try to get original message from storage
+        const originalMessage = getOriginalMessage(roomId, msg.id) || 
+                                getOriginalMessageByHandle(msg.encryptedContent) ||
+                                decryptMessage(msg.encryptedContent)
+        
+        return {
+          id: msg.id,
+          roomId: roomId,
+          sender: msg.sender,
+          timestamp: msg.timestamp,
+          edited: msg.edited,
+          editTimestamp: msg.editTimestamp,
+          encryptedContent: msg.encryptedContent,
+          decryptedContent: originalMessage,
+        }
+      })
       
       setMessages(decryptedMessages)
     } catch (error) {
@@ -108,15 +116,16 @@ export default function MessageList({ roomId }: MessageListProps) {
     }
   }
 
-  const decryptMessage = (encrypted: string): string => {
-    // convert hex back to text
-    try {
-      const hex = encrypted.startsWith('0x') ? encrypted.slice(2) : encrypted
-      const bytes = new Uint8Array(hex.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || [])
-      return new TextDecoder().decode(bytes)
-    } catch {
-      return '[Encrypted]'
+  const decryptMessage = (encryptedHandle: string): string => {
+    // Try to get original message from storage by handle
+    const original = getOriginalMessageByHandle(encryptedHandle)
+    if (original) {
+      return original
     }
+    
+    // If not found in storage, show placeholder
+    // This happens for messages created before we started storing originals
+    return '[Encrypted - Original message not available]'
   }
 
   const handleMessageEdited = () => {

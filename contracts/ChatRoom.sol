@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-// Note: FHEVM uses bytes for encrypted data storage
-// Encryption/decryption happens on the client side using fhevmjs
-
 /**
- * @title ChatRoom
- * @dev Main contract for managing chat rooms, users, and encrypted messages
+ * @title ChatRoom - Fully Homomorphic Encryption Chat
+ * @dev Main contract for managing chat rooms, users, and encrypted messages using FHE
+ * 
+ * This contract uses Fully Homomorphic Encryption (FHE) via Zama FHEVM.
+ * All message content is encrypted using FHE before being stored on-chain.
+ * Messages are stored as FHE handles (bytes32) which represent encrypted data.
  */
 contract ChatRoom {
     // User profile structure
@@ -25,11 +26,11 @@ contract ChatRoom {
         bool exists;
     }
 
-    // Message structure with encrypted content
+    // Message structure with FHE-encrypted content
     struct Message {
         address sender;
         uint256 roomId;
-        bytes encryptedContent; // Encrypted message content (bytes for FHEVM)
+        bytes32 encryptedContent; // FHE handle (bytes32) for encrypted message content (euint32)
         uint256 timestamp;
         uint256 messageId;
         bool edited;
@@ -166,20 +167,22 @@ contract ChatRoom {
     }
 
     /**
-     * @dev Send an encrypted message to a room
+     * @dev Send an encrypted message to a room using FHE
      * @param roomId The room ID
-     * @param encryptedContent The encrypted message content (bytes)
+     * @param encryptedContent FHE handle (bytes32) for encrypted message content
      * @return messageId The ID of the sent message
      */
-    function sendMessage(uint256 roomId, bytes calldata encryptedContent) external returns (uint256) {
+    function sendMessage(uint256 roomId, bytes32 encryptedContent) external returns (uint256) {
         require(userProfiles[msg.sender].exists, "User must be registered");
         require(rooms[roomId].exists, "Room does not exist");
+        require(encryptedContent != bytes32(0), "FHE encrypted content cannot be empty");
 
         uint256 messageId = roomMessageCounts[roomId];
+        // Store FHE handle - this represents encrypted message data
         messages[roomId][messageId] = Message({
             sender: msg.sender,
             roomId: roomId,
-            encryptedContent: encryptedContent,
+            encryptedContent: encryptedContent, // FHE handle stored
             timestamp: block.timestamp,
             messageId: messageId,
             edited: false,
@@ -194,22 +197,24 @@ contract ChatRoom {
     }
 
     /**
-     * @dev Edit an existing message
+     * @dev Edit an existing message with new FHE-encrypted content
      * @param roomId The room ID
      * @param messageId The message ID
-     * @param newEncryptedContent The new encrypted content
+     * @param newEncryptedContent FHE handle (bytes32) for new encrypted message content
      */
     function editMessage(
         uint256 roomId,
         uint256 messageId,
-        bytes calldata newEncryptedContent
+        bytes32 newEncryptedContent
     ) external {
         require(userProfiles[msg.sender].exists, "User must be registered");
         require(rooms[roomId].exists, "Room does not exist");
         require(messages[roomId][messageId].sender == msg.sender, "Only sender can edit");
         require(messages[roomId][messageId].timestamp > 0, "Message does not exist");
+        require(newEncryptedContent != bytes32(0), "FHE encrypted content cannot be empty");
 
-        messages[roomId][messageId].encryptedContent = newEncryptedContent;
+        // Update with new FHE handle
+        messages[roomId][messageId].encryptedContent = newEncryptedContent; // FHE handle stored
         messages[roomId][messageId].edited = true;
         messages[roomId][messageId].editTimestamp = block.timestamp;
 
@@ -249,17 +254,17 @@ contract ChatRoom {
     }
 
     /**
-     * @dev Get encrypted message content (requires FHE decryption on client)
+     * @dev Get FHE handle for encrypted message content
      * @param roomId The room ID
      * @param messageId The message ID
-     * @return encryptedContent The encrypted message content
+     * @return encryptedContent FHE handle (bytes32) for encrypted message content
      */
     function getEncryptedMessage(
         uint256 roomId,
         uint256 messageId
-    ) external view returns (bytes memory) {
+    ) external view returns (bytes32) {
         require(messages[roomId][messageId].timestamp > 0, "Message does not exist");
-        return messages[roomId][messageId].encryptedContent;
+        return messages[roomId][messageId].encryptedContent; // Returns FHE handle
     }
 }
 

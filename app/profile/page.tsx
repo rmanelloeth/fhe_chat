@@ -30,16 +30,31 @@ export default function ProfilePage() {
     try {
       const provider = getReadOnlyProvider()
       const contract = getChatContractReadOnly(provider)
-      const registered = await contract.isUserRegistered(address)
+      
+      // Add timeout for contract calls
+      const registered = await Promise.race([
+        contract.isUserRegistered(address),
+        new Promise<boolean>((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout')), 15000)
+        )
+      ]) as boolean
+      
       setIsRegistered(registered)
       
       if (registered) {
-        const userNickname = await contract.getUserNickname(address)
+        const userNickname = await Promise.race([
+          contract.getUserNickname(address),
+          new Promise<string>((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout')), 15000)
+          )
+        ]) as string
         setNickname(userNickname)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading profile:', error)
-      setError('Failed to load profile')
+      setError(error.message || 'Failed to load profile')
+      // Don't block UI - allow user to try again
+      setIsRegistered(false)
     } finally {
       setIsLoading(false)
     }

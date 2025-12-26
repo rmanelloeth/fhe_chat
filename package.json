@@ -1,7 +1,7 @@
 {
-  "name": "fhevm-chat-dapp",
+  "name": "fhe-chat",
   "version": "1.0.0",
-  "description": "Private Chat DApp with FHEVM - Rooms, Messages, Nicknames. Deployed contract: 0xb3Bb917C435D3c14DD84b85993Cd6561def9F782 on Sepolia",
+  "description": "Private Chat DApp with FHEVM - Rooms, Messages, Nicknames. Deployed contract: 0xa7e798a7D544673455E3196F5E3F853c51dE4C9C on Sepolia",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -14,6 +14,7 @@
   "dependencies": {
     "@rainbow-me/rainbowkit": "2.0.0",
     "@tanstack/react-query": "^5.17.0",
+    "@zama-fhe/relayer-sdk": "^0.3.0-6",
     "browserslist": "^4.28.1",
     "caniuse-lite": "^1.0.30001759",
     "date-fns": "^2.30.0",

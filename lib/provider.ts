@@ -46,7 +46,7 @@ export async function getBrowserProvider(address?: string): Promise<BrowserProvi
                 chainId: sepoliaChainId,
                 chainName: 'Sepolia',
                 nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
-                rpcUrls: ['https://sepolia.drpc.org'],
+                rpcUrls: ['https://0xrpc.io/sep'],
                 blockExplorerUrls: ['https://sepolia.etherscan.io']
               }],
             })
@@ -83,7 +83,7 @@ export function getReadOnlyProvider(): BrowserProvider | JsonRpcProvider {
   }
   
   // fallback to public rpc
-  const publicRpcUrl = 'https://sepolia.drpc.org'
-  return new JsonRpcProvider(publicRpcUrl)
+  const rpcUrl = process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL || 'https://0xrpc.io/sep'
+  return new JsonRpcProvider(rpcUrl)
 }
 

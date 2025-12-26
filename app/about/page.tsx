@@ -97,7 +97,7 @@ export default function AboutPage() {
             <div className="bg-gray-900 rounded-lg p-6 space-y-3">
               <div>
                 <span className="text-gray-400">Address:</span>
-                <code className="ml-2 text-purple-400">0xb3Bb917C435D3c14DD84b85993Cd6561def9F782</code>
+                <code className="ml-2 text-purple-400">0xa7e798a7D544673455E3196F5E3F853c51dE4C9C</code>
               </div>
               <div>
                 <span className="text-gray-400">Network:</span>
@@ -109,7 +109,7 @@ export default function AboutPage() {
               </div>
               <div>
                 <a
-                  href="https://sepolia.etherscan.io/address/0xb3Bb917C435D3c14DD84b85993Cd6561def9F782"
+                  href="https://sepolia.etherscan.io/address/0xa7e798a7D544673455E3196F5E3F853c51dE4C9C"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-400 hover:text-blue-300 underline"

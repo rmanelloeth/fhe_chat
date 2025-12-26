@@ -21,7 +21,7 @@ export default function Navigation() {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-3">
           <LogoIcon className="w-10 h-10" />
-          <span className="text-xl font-bold text-white">encrypted chatooors</span>
+          <span className="text-xl font-bold text-white">🥷💬 encrypted chatooors</span>
         </Link>
 
         {/* Navigation Links */}

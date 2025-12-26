@@ -1,5 +1,5 @@
 // Complete ABI for ChatRoom Contract
-// Address: 0xb3Bb917C435D3c14DD84b85993Cd6561def9F782
+// Address: 0xa7e798a7D544673455E3196F5E3F853c51dE4C9C
 // Network: Sepolia Testnet (Chain ID: 11155111)
 
 export const CHAT_ROOM_ABI = [
@@ -67,7 +67,7 @@ export const CHAT_ROOM_ABI = [
     inputs: [
       { internalType: "uint256", name: "roomId", type: "uint256" },
       { internalType: "uint256", name: "messageId", type: "uint256" },
-      { internalType: "bytes", name: "newEncryptedContent", type: "bytes" }
+      { internalType: "bytes32", name: "newEncryptedContent", type: "bytes32" }
     ],
     name: "editMessage",
     outputs: [],
@@ -80,7 +80,7 @@ export const CHAT_ROOM_ABI = [
       { internalType: "uint256", name: "messageId", type: "uint256" }
     ],
     name: "getEncryptedMessage",
-    outputs: [{ internalType: "bytes", name: "", type: "bytes" }],
+    outputs: [{ internalType: "bytes32", name: "", type: "bytes32" }],
     stateMutability: "view",
     type: "function"
   },
@@ -142,7 +142,7 @@ export const CHAT_ROOM_ABI = [
   {
     inputs: [
       { internalType: "uint256", name: "roomId", type: "uint256" },
-      { internalType: "bytes", name: "encryptedContent", type: "bytes" }
+      { internalType: "bytes32", name: "encryptedContent", type: "bytes32" }
     ],
     name: "sendMessage",
     outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
@@ -172,5 +172,5 @@ export const CHAT_ROOM_ABI = [
   }
 ] as const
 
-export const CHAT_CONTRACT_ADDRESS = "0xb3Bb917C435D3c14DD84b85993Cd6561def9F782" as const
+export const CHAT_CONTRACT_ADDRESS = "0xa7e798a7D544673455E3196F5E3F853c51dE4C9C" as const
 

@@ -8,7 +8,7 @@ export default function Footer() {
       <div className="container mx-auto px-4 py-12">
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           <div>
-            <h3 className="text-xl font-bold text-white mb-4">encrypted chatooors</h3>
+            <h3 className="text-xl font-bold text-white mb-4">🥷💬 encrypted chatooors</h3>
             <p className="text-gray-400 text-sm">
               Decentralized messaging with encrypted messages and rooms.
             </p>
@@ -54,7 +54,7 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href="https://sepolia.etherscan.io/address/0xb3Bb917C435D3c14DD84b85993Cd6561def9F782" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition">
+                <a href="https://sepolia.etherscan.io/address/0xa7e798a7D544673455E3196F5E3F853c51dE4C9C" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition">
                   Smart Contract
                 </a>
               </li>
@@ -81,7 +81,7 @@ export default function Footer() {
         
         <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-gray-400 text-sm">
-            © 2025 encrypted chatooors. All rights reserved.
+            © 2025 🥷💬 encrypted chatooors. All rights reserved.
           </p>
           <div className="flex items-center gap-4 text-sm text-gray-400">
             <span>Network: Sepolia</span>

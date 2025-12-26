@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { useAccount } from 'wagmi'
 import { getChatContract } from '@/lib/contract'
 import { getBrowserProvider } from '@/lib/provider'
+import { initFHERelayer, encryptMessage, storeOriginalMessage } from '@/lib/fheEncryption'
 
 interface MessageItemProps {
   message: {
@@ -25,28 +26,46 @@ export default function MessageItem({ message, nickname, isOwnMessage, onEdit }:
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState(message.decryptedContent || '')
   const [isSaving, setIsSaving] = useState(false)
+  const [isRelayerReady, setIsRelayerReady] = useState(false)
   const { address } = useAccount()
 
-  const encryptMessage = (text: string): string => {
-    // convert text to hex
-    const bytes = new TextEncoder().encode(text)
-    return '0x' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
-  }
+  useEffect(() => {
+    if (address) {
+      initFHERelayer()
+        .then(() => setIsRelayerReady(true))
+        .catch((error) => {
+          console.error('Failed to initialize FHE relayer:', error)
+          setIsRelayerReady(false)
+        })
+    }
+  }, [address])
 
   const handleEdit = async () => {
-    if (!isOwnMessage) return
+    if (!isOwnMessage || !address) return
     
     if (isEditing) {
+      if (!isRelayerReady) {
+        alert('FHE encryption system is not ready. Please wait...')
+        return
+      }
+
       // save the edit
       setIsSaving(true)
       try {
+        const editText = editContent.trim()
+        
+        // Encrypt message using FHE
+        const encryptedHandle = await encryptMessage(editText, address)
+
         const provider = await getBrowserProvider(address)
         const signer = await provider.getSigner()
         const contract = getChatContract(signer)
         
-        const encrypted = encryptMessage(editContent.trim())
-        const tx = await contract.editMessage(message.roomId, message.id, encrypted)
+        const tx = await contract.editMessage(message.roomId, message.id, encryptedHandle)
         await tx.wait()
+        
+        // Store updated original message
+        storeOriginalMessage(encryptedHandle, editText, message.roomId, message.id)
         
         setIsEditing(false)
         onEdit()
