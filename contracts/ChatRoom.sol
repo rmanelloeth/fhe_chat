@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
+
+import {FHE, euint32, externalEuint32} from "@fhevm/solidity/lib/FHE.sol";
+import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 
 /**
  * @title ChatRoom - Fully Homomorphic Encryption Chat
@@ -7,9 +10,9 @@ pragma solidity ^0.8.20;
  * 
  * This contract uses Fully Homomorphic Encryption (FHE) via Zama FHEVM.
  * All message content is encrypted using FHE before being stored on-chain.
- * Messages are stored as FHE handles (bytes32) which represent encrypted data.
+ * Messages are stored as euint32 (encrypted uint32) which supports ACL.
  */
-contract ChatRoom {
+contract ChatRoom is ZamaEthereumConfig {
     // User profile structure
     struct UserProfile {
         string nickname;
@@ -30,7 +33,7 @@ contract ChatRoom {
     struct Message {
         address sender;
         uint256 roomId;
-        bytes32 encryptedContent; // FHE handle (bytes32) for encrypted message content (euint32)
+        euint32 encryptedContent; // FHE encrypted message content (euint32) - supports ACL
         uint256 timestamp;
         uint256 messageId;
         bool edited;
@@ -169,20 +172,31 @@ contract ChatRoom {
     /**
      * @dev Send an encrypted message to a room using FHE
      * @param roomId The room ID
-     * @param encryptedContent FHE handle (bytes32) for encrypted message content
+     * @param encryptedContent External encrypted content (externalEuint32)
+     * @param inputProof FHE input proof for the encrypted content
      * @return messageId The ID of the sent message
      */
-    function sendMessage(uint256 roomId, bytes32 encryptedContent) external returns (uint256) {
+    function sendMessage(
+        uint256 roomId,
+        externalEuint32 encryptedContent,
+        bytes calldata inputProof
+    ) external returns (uint256) {
         require(userProfiles[msg.sender].exists, "User must be registered");
         require(rooms[roomId].exists, "Room does not exist");
-        require(encryptedContent != bytes32(0), "FHE encrypted content cannot be empty");
 
         uint256 messageId = roomMessageCounts[roomId];
-        // Store FHE handle - this represents encrypted message data
+        
+        // Convert external encrypted value to euint32
+        euint32 content = FHE.fromExternal(encryptedContent, inputProof);
+        
+        // Allow sender to decrypt their own message (ACL for user decryption)
+        FHE.allow(content, msg.sender);
+        
+        // Store encrypted content
         messages[roomId][messageId] = Message({
             sender: msg.sender,
             roomId: roomId,
-            encryptedContent: encryptedContent, // FHE handle stored
+            encryptedContent: content,
             timestamp: block.timestamp,
             messageId: messageId,
             edited: false,
@@ -200,21 +214,28 @@ contract ChatRoom {
      * @dev Edit an existing message with new FHE-encrypted content
      * @param roomId The room ID
      * @param messageId The message ID
-     * @param newEncryptedContent FHE handle (bytes32) for new encrypted message content
+     * @param newEncryptedContent External encrypted content (externalEuint32)
+     * @param inputProof FHE input proof for the encrypted content
      */
     function editMessage(
         uint256 roomId,
         uint256 messageId,
-        bytes32 newEncryptedContent
+        externalEuint32 newEncryptedContent,
+        bytes calldata inputProof
     ) external {
         require(userProfiles[msg.sender].exists, "User must be registered");
         require(rooms[roomId].exists, "Room does not exist");
         require(messages[roomId][messageId].sender == msg.sender, "Only sender can edit");
         require(messages[roomId][messageId].timestamp > 0, "Message does not exist");
-        require(newEncryptedContent != bytes32(0), "FHE encrypted content cannot be empty");
 
-        // Update with new FHE handle
-        messages[roomId][messageId].encryptedContent = newEncryptedContent; // FHE handle stored
+        // Convert external encrypted value to euint32
+        euint32 content = FHE.fromExternal(newEncryptedContent, inputProof);
+        
+        // Allow sender to decrypt the edited message (ACL for user decryption)
+        FHE.allow(content, msg.sender);
+        
+        // Update with new encrypted content
+        messages[roomId][messageId].encryptedContent = content;
         messages[roomId][messageId].edited = true;
         messages[roomId][messageId].editTimestamp = block.timestamp;
 
@@ -254,17 +275,51 @@ contract ChatRoom {
     }
 
     /**
-     * @dev Get FHE handle for encrypted message content
+     * @dev Get encrypted message content (euint32)
      * @param roomId The room ID
      * @param messageId The message ID
-     * @return encryptedContent FHE handle (bytes32) for encrypted message content
+     * @return encryptedContent Encrypted message content (euint32)
      */
     function getEncryptedMessage(
         uint256 roomId,
         uint256 messageId
-    ) external view returns (bytes32) {
+    ) external view returns (euint32) {
         require(messages[roomId][messageId].timestamp > 0, "Message does not exist");
-        return messages[roomId][messageId].encryptedContent; // Returns FHE handle
+        return messages[roomId][messageId].encryptedContent;
+    }
+
+    /**
+     * @dev Get all encrypted messages for a room
+     * Returns all encrypted content and their metadata for client-side decryption via relayer
+     * @param roomId The room ID
+     * @return messageIds Array of message IDs
+     * @return encryptedContents Array of encrypted message content (euint32)
+     * @return senders Array of sender addresses
+     * @return timestamps Array of message timestamps
+     * @return edited Array of edit flags
+     */
+    function getRoomEncryptedMessages(uint256 roomId) external view returns (
+        uint256[] memory messageIds,
+        euint32[] memory encryptedContents,
+        address[] memory senders,
+        uint256[] memory timestamps,
+        bool[] memory edited
+    ) {
+        uint256 messageCount = roomMessageCounts[roomId];
+        messageIds = new uint256[](messageCount);
+        encryptedContents = new euint32[](messageCount);
+        senders = new address[](messageCount);
+        timestamps = new uint256[](messageCount);
+        edited = new bool[](messageCount);
+
+        for (uint256 i = 0; i < messageCount; i++) {
+            Message memory msgData = messages[roomId][i];
+            messageIds[i] = i;
+            encryptedContents[i] = msgData.encryptedContent;
+            senders[i] = msgData.sender;
+            timestamps[i] = msgData.timestamp;
+            edited[i] = msgData.edited;
+        }
     }
 }
 

@@ -5,7 +5,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { useAccount } from 'wagmi'
 import { getChatContract } from '@/lib/contract'
 import { getBrowserProvider } from '@/lib/provider'
-import { initFHERelayer, encryptMessage, storeOriginalMessage } from '@/lib/fheEncryption'
+import { initFHERelayer, encryptMessage, storeOriginalMessage, decryptMessage } from '@/lib/fheEncryption'
 
 interface MessageItemProps {
   message: {
@@ -16,25 +16,36 @@ interface MessageItemProps {
     edited: boolean
     editTimestamp: bigint
     decryptedContent?: string
+    isDecrypted?: boolean
+    encryptedContent?: string
   }
   nickname: string
   isOwnMessage: boolean
   onEdit: () => void
+  onDecrypt?: () => void
 }
 
-export default function MessageItem({ message, nickname, isOwnMessage, onEdit }: MessageItemProps) {
+export default function MessageItem({ message, nickname, isOwnMessage, onEdit, onDecrypt }: MessageItemProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState(message.decryptedContent || '')
   const [isSaving, setIsSaving] = useState(false)
+  const [isDecrypting, setIsDecrypting] = useState(false)
   const [isRelayerReady, setIsRelayerReady] = useState(false)
   const { address } = useAccount()
 
   useEffect(() => {
     if (address) {
+      console.log('[MessageItem] Initializing FHE relayer...')
+      const initStartTime = Date.now()
       initFHERelayer()
-        .then(() => setIsRelayerReady(true))
+        .then(() => {
+          const initTime = Date.now() - initStartTime
+          console.log(`[MessageItem] ✅ FHE relayer initialized successfully in ${initTime}ms`)
+          setIsRelayerReady(true)
+        })
         .catch((error) => {
-          console.error('Failed to initialize FHE relayer:', error)
+          const initTime = Date.now() - initStartTime
+          console.error(`[MessageItem] ❌ Failed to initialize FHE relayer after ${initTime}ms:`, error)
           setIsRelayerReady(false)
         })
     }
@@ -55,17 +66,22 @@ export default function MessageItem({ message, nickname, isOwnMessage, onEdit }:
         const editText = editContent.trim()
         
         // Encrypt message using FHE
-        const encryptedHandle = await encryptMessage(editText, address)
+        const { encryptedInput, handle } = await encryptMessage(editText, address)
 
         const provider = await getBrowserProvider(address)
         const signer = await provider.getSigner()
         const contract = getChatContract(signer)
         
-        const tx = await contract.editMessage(message.roomId, message.id, encryptedHandle)
+        // externalEuint32 is the first handle from encryptedInput
+        // inputProof is encryptedInput.inputProof
+        const externalEuint32 = encryptedInput.handles[0]
+        const inputProof = encryptedInput.inputProof || '0x'
+        
+        const tx = await contract.editMessage(message.roomId, message.id, externalEuint32, inputProof)
         await tx.wait()
         
         // Store updated original message
-        storeOriginalMessage(encryptedHandle, editText, message.roomId, message.id)
+        storeOriginalMessage(handle, editText, message.roomId, message.id)
         
         setIsEditing(false)
         onEdit()
@@ -124,9 +140,36 @@ export default function MessageItem({ message, nickname, isOwnMessage, onEdit }:
           </div>
         ) : (
           <div className="flex items-start justify-between gap-2 group">
-            <p className={`text-sm ${isOwnMessage ? 'text-white' : 'text-gray-100'} whitespace-pre-wrap break-words flex-1`}>
-              {message.decryptedContent || '[Encrypted]'}
-            </p>
+            <div className="flex-1">
+              <p className={`text-sm ${isOwnMessage ? 'text-white' : 'text-gray-100'} whitespace-pre-wrap break-words`}>
+                {message.decryptedContent || '[Encrypted]'}
+              </p>
+              {message.decryptedContent && message.decryptedContent.includes('[Encrypted') && 
+               !message.isDecrypted && 
+               isRelayerReady && 
+               message.encryptedContent && (
+                <button
+                  onClick={async () => {
+                    if (!address || !message.encryptedContent) return
+                    setIsDecrypting(true)
+                    try {
+                      const decrypted = await decryptMessage(message.encryptedContent, address, true)
+                      if (decrypted && onDecrypt) {
+                        onDecrypt()
+                      }
+                    } catch (error) {
+                      console.error('Manual decryption failed:', error)
+                    } finally {
+                      setIsDecrypting(false)
+                    }
+                  }}
+                  disabled={isDecrypting}
+                  className="text-xs text-blue-400 hover:text-blue-300 mt-1 underline"
+                >
+                  {isDecrypting ? 'Decrypting...' : 'Decrypt message'}
+                </button>
+              )}
+            </div>
             {isOwnMessage && (
               <button
                 onClick={handleEdit}

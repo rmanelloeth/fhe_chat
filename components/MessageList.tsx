@@ -5,7 +5,7 @@ import { useAccount } from 'wagmi'
 import { getChatContractReadOnly } from '@/lib/contract'
 import { getReadOnlyProvider } from '@/lib/provider'
 import { formatDistanceToNow } from 'date-fns'
-import { getOriginalMessage, getOriginalMessageByHandle } from '@/lib/fheEncryption'
+import { getOriginalMessage, getOriginalMessageByHandle, initFHERelayer } from '@/lib/fheEncryption'
 import MessageItem from './MessageItem'
 
 interface Message {
@@ -17,6 +17,7 @@ interface Message {
   editTimestamp: bigint
   encryptedContent: string
   decryptedContent?: string
+  isDecrypted?: boolean
 }
 
 interface MessageListProps {
@@ -27,8 +28,28 @@ export default function MessageList({ roomId }: MessageListProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
   const [nicknames, setNicknames] = useState<Record<string, string>>({})
+  const [isRelayerReady, setIsRelayerReady] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { address } = useAccount()
+
+  useEffect(() => {
+    // Initialize FHE relayer
+    if (address) {
+      console.log('[MessageList] Initializing FHE relayer...')
+      const initStartTime = Date.now()
+      initFHERelayer()
+        .then(() => {
+          const initTime = Date.now() - initStartTime
+          console.log(`[MessageList] ✅ FHE relayer initialized successfully in ${initTime}ms`)
+          setIsRelayerReady(true)
+        })
+        .catch((error) => {
+          const initTime = Date.now() - initStartTime
+          console.error(`[MessageList] ❌ Failed to initialize FHE relayer after ${initTime}ms:`, error)
+          setIsRelayerReady(false)
+        })
+    }
+  }, [address])
 
   useEffect(() => {
     loadMessages()
@@ -36,7 +57,7 @@ export default function MessageList({ roomId }: MessageListProps) {
     // check for new messages every 3 seconds
     const interval = setInterval(loadMessages, 3000)
     return () => clearInterval(interval)
-  }, [roomId])
+  }, [roomId, isRelayerReady])
 
   useEffect(() => {
     scrollToBottom()
@@ -89,13 +110,26 @@ export default function MessageList({ roomId }: MessageListProps) {
       })
       setNicknames(nicknameMap)
       
-      // Decrypt messages using stored original text
-      const decryptedMessages = loadedMessages.map(msg => {
-        // Try to get original message from storage
-        const originalMessage = getOriginalMessage(roomId, msg.id) || 
-                                getOriginalMessageByHandle(msg.encryptedContent) ||
-                                decryptMessage(msg.encryptedContent)
-        
+      // Only load messages from localStorage (messages we sent)
+      // Don't attempt automatic decryption - user must click button
+      const decryptedMessagesPromises = loadedMessages.map(async (msg) => {
+        let decryptedContent: string | null = null
+        let isDecrypted = false
+
+        // Only try to get from localStorage (messages we sent)
+        decryptedContent = getOriginalMessage(roomId, msg.id) || 
+                          getOriginalMessageByHandle(msg.encryptedContent)
+
+        if (decryptedContent) {
+          isDecrypted = true
+        }
+
+        // If still no content, show placeholder
+        // User can decrypt manually via button
+        if (!decryptedContent) {
+          decryptedContent = '[Encrypted - Tap to decrypt]'
+        }
+
         return {
           id: msg.id,
           roomId: roomId,
@@ -104,28 +138,18 @@ export default function MessageList({ roomId }: MessageListProps) {
           edited: msg.edited,
           editTimestamp: msg.editTimestamp,
           encryptedContent: msg.encryptedContent,
-          decryptedContent: originalMessage,
+          decryptedContent: decryptedContent,
+          isDecrypted: isDecrypted,
         }
       })
-      
+
+      const decryptedMessages = await Promise.all(decryptedMessagesPromises)
       setMessages(decryptedMessages)
     } catch (error) {
       console.error('Error loading messages:', error)
     } finally {
       setLoading(false)
     }
-  }
-
-  const decryptMessage = (encryptedHandle: string): string => {
-    // Try to get original message from storage by handle
-    const original = getOriginalMessageByHandle(encryptedHandle)
-    if (original) {
-      return original
-    }
-    
-    // If not found in storage, show placeholder
-    // This happens for messages created before we started storing originals
-    return '[Encrypted - Original message not available]'
   }
 
   const handleMessageEdited = () => {
@@ -157,6 +181,7 @@ export default function MessageList({ roomId }: MessageListProps) {
             nickname={nicknames[message.sender] || message.sender.slice(0, 6) + '...' + message.sender.slice(-4)}
             isOwnMessage={message.sender.toLowerCase() === address?.toLowerCase()}
             onEdit={handleMessageEdited}
+            onDecrypt={loadMessages}
           />
         ))
       )}

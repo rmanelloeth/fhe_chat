@@ -95,7 +95,7 @@
 3. **FHE Handle**: Encryption creates an FHE handle (bytes32)
 4. **On-Chain Storage**: FHE handle stored in Message struct on-chain
 5. **Retrieval**: Messages can be retrieved as FHE handles
-6. **Decryption**: FHE handles can be decrypted client-side via FHE relayer (original text stored in localStorage for display)
+6. **Decryption**: FHE handles can be decrypted client-side via FHE relayer
 
 ---
 
@@ -135,8 +135,7 @@
 
 **Contract Address**: `0xa7e798a7D544673455E3196F5E3F853c51dE4C9C`  
 **Network**: Sepolia Testnet  
-**Deployer**: `0x017e4229b9C37BdEDfF92FB00a7Cb79EA1876a7a`  
-**Explorer**: [View on Etherscan](https://sepolia.etherscan.io/address/0xa7e798a7D544673455E3196F5E3F853c51dE4C9C)
+**Deployer**: `0x017e4229b9C37BdEDfF92FB00a7Cb79EA1876a7a`
 
 ### Key Functions
 
@@ -194,7 +193,6 @@
 2. **Encryption Result** is an FHE handle (bytes32) — a reference to encrypted data
 3. **FHE Handle** is stored on-chain instead of plaintext message
 4. **Retrieval** returns FHE handle, which can be decrypted via FHE relayer
-5. **Display** uses localStorage to store original messages for user-friendly display
 
 ### Encryption Process
 
@@ -239,10 +237,8 @@ struct Message {
 ✅ **No Plaintext Storage**: Original message text never stored on-chain  
 ✅ **Encrypted Handles**: Only FHE handles (references) are stored  
 ✅ **Client-Side Encryption**: Messages encrypted before blockchain submission  
-✅ **Client-Side Storage**: Original messages stored in localStorage for display  
+✅ **Client-Side Decryption**: Messages decrypted via FHE relayer (when implemented)  
 ✅ **Permanent Storage**: Messages stored permanently on blockchain in encrypted form
-
-**Note**: Due to FHE limitations (works with numbers, not strings), original message text is stored in localStorage for display purposes. The FHE handle on-chain serves as cryptographic proof of the encrypted message.
 
 ---
 
@@ -292,13 +288,11 @@ struct Message {
 
 2. **Update addresses**
    - Update `.env.local` with new contract address
-   - Update Vercel environment variables (if deploying to Vercel)
+   - Update Vercel environment variables
 
 ### Production Deployment
 
 Deployed on Vercel (configure environment variables in dashboard for production builds).
-
-**Live URL**: https://fhe-chat.vercel.app
 
 ---
 
@@ -360,8 +354,7 @@ MAIN/
 - ✅ Modern UI with Tailwind CSS
 - ✅ Wallet connection via RainbowKit
 - ✅ Smart contract with FHE handle support
-- ✅ Production-ready deployment on Vercel
-- ✅ Message decryption via localStorage for display
+- ✅ Production-ready deployment
 
 ### Considerations
 
@@ -370,7 +363,7 @@ MAIN/
 - ⚠️ Gas costs vary based on network conditions
 - ⚠️ Experimental technology — use at your own risk
 - ℹ️ Message content encrypted but FHE handles visible on-chain (cannot decrypt without relayer)
-- ℹ️ Original message text stored in localStorage for user-friendly display (due to FHE string limitations)
+- ℹ️ Full message decryption requires FHE relayer integration on client side
 
 ---
 
@@ -380,16 +373,6 @@ MAIN/
 - [Next.js Documentation](https://nextjs.org/docs)
 - [Wagmi Documentation](https://wagmi.sh)
 - [Ethereum Sepolia Testnet](https://sepolia.dev)
-- [Contract on Etherscan](https://sepolia.etherscan.io/address/0xa7e798a7D544673455E3196F5E3F853c51dE4C9C)
-
----
-
-## 👤 Contact
-
-**DJ Rmanello**
-
-- Discord: DJ Rmanello
-- X (Twitter): [@rmanellooo](https://x.com/rmanellooo)
 
 ---
 

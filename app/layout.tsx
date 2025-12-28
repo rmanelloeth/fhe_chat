@@ -19,6 +19,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (typeof global === 'undefined') {
+                window.global = globalThis;
+              }
+            `,
+          }}
+        />
+      </head>
       <body className={`${inter.className} min-h-screen flex flex-col bg-black`}>
         <Providers>
           <Navigation />

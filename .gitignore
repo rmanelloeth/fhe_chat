@@ -43,5 +43,6 @@ typechain-types/
 *.swo
 
 # OS
+.DS_Store
 Thumbs.db
-next-env.d.ts
+

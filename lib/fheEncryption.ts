@@ -2,73 +2,97 @@
  * FHE Encryption utilities using Zama FHEVM Relayer SDK
  */
 
+import { getSigner } from './provider'
+
 let relayerInstance: any = null
 let isInitializing = false
 let initPromise: Promise<any> | null = null
 
-const CONTRACT_ADDRESS = '0xa7e798a7D544673455E3196F5E3F853c51dE4C9C'
+const CONTRACT_ADDRESS = '0xd50627e4b0E63dfBBBed2bC7d0B69cc497a99C18'
 
 /**
  * Initialize FHE Relayer SDK
  */
 export const initFHERelayer = async (): Promise<any> => {
+  const startTime = Date.now()
+  console.log('[FHE Relayer] Starting initialization...')
+  
   if (relayerInstance) {
+    console.log('[FHE Relayer] ✅ Already initialized, returning existing instance')
     return relayerInstance
   }
 
   if (isInitializing && initPromise) {
+    console.log('[FHE Relayer] ⏳ Already initializing, waiting for existing promise...')
     return initPromise
   }
 
   isInitializing = true
   initPromise = (async () => {
     try {
+      console.log('[FHE Relayer] Step 1/4: Checking environment...')
       if (typeof window === 'undefined') {
         throw new Error('Relayer can only be initialized in browser environment')
       }
+      console.log('[FHE Relayer] ✅ Environment check passed')
 
-      // Set up global for FHE relayer SDK compatibility
+      // Set up global polyfill for FHE relayer SDK compatibility
+      // Note: Should be set in layout.tsx, but double-check here
       if (typeof (window as any).global === 'undefined') {
-        (window as any).global = window
-      }
-      if (typeof (globalThis as any).global === 'undefined') {
-        (globalThis as any).global = globalThis
+        console.log('[FHE Relayer] Setting up global polyfill (fallback)...')
+        ;(window as any).global = globalThis
+        console.log('[FHE Relayer] ✅ Global polyfill set (fallback)')
+      } else {
+        console.log('[FHE Relayer] Global polyfill already exists')
       }
 
-      console.log('Initializing FHE relayer...')
-      
+      console.log('[FHE Relayer] Step 2/4: Loading relayer module (@zama-fhe/relayer-sdk/web)...')
+      const moduleStartTime = Date.now()
       const relayerModule: any = await Promise.race([
         import('@zama-fhe/relayer-sdk/web'),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Relayer load timeout')), 15000))
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Relayer load timeout')), 30000))
       ])
+      const moduleLoadTime = Date.now() - moduleStartTime
+      console.log(`[FHE Relayer] ✅ Module loaded in ${moduleLoadTime}ms`)
 
-      console.log('Relayer module loaded, initializing SDK...')
-
+      console.log('[FHE Relayer] Step 3/4: Initializing SDK...')
+      const sdkStartTime = Date.now()
       const sdkInitialized = await Promise.race([
         relayerModule.initSDK(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('SDK init timeout')), 15000))
+        new Promise((_, reject) => setTimeout(() => reject(new Error('SDK init timeout')), 30000))
       ])
+      const sdkInitTime = Date.now() - sdkStartTime
+      console.log(`[FHE Relayer] ✅ SDK initialized in ${sdkInitTime}ms`)
 
       if (!sdkInitialized) {
         throw new Error('SDK initialization failed')
       }
 
-      console.log('SDK initialized, creating instance...')
-
+      console.log('[FHE Relayer] Step 4/4: Creating relayer instance with SepoliaConfig...')
+      const instanceStartTime = Date.now()
       const instance = await Promise.race([
         relayerModule.createInstance(relayerModule.SepoliaConfig),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Instance creation timeout')), 20000))
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Instance creation timeout')), 30000))
       ])
+      const instanceTime = Date.now() - instanceStartTime
+      console.log(`[FHE Relayer] ✅ Instance created in ${instanceTime}ms`)
 
-      console.log('FHE relayer initialized successfully')
       relayerInstance = instance
       isInitializing = false
+      const totalTime = Date.now() - startTime
+      console.log(`[FHE Relayer] ✅✅✅ Initialization complete! Total time: ${totalTime}ms`)
+      console.log('[FHE Relayer] Relayer is ready to use')
       return instance
-    } catch (error) {
-      console.error('FHE relayer initialization failed:', error)
+    } catch (error: any) {
       isInitializing = false
       initPromise = null
-      relayerInstance = null
+      const totalTime = Date.now() - startTime
+      console.error(`[FHE Relayer] ❌❌❌ Initialization failed after ${totalTime}ms:`, error)
+      console.error('[FHE Relayer] Error details:', {
+        message: error?.message,
+        stack: error?.stack,
+        name: error?.name
+      })
       throw error
     }
   })()
@@ -142,69 +166,280 @@ const numberToString = (num: number): string => {
 /**
  * Encrypt string message using FHE
  * Converts string to number and encrypts it
+ * Returns encrypted input with handle and inputProof for contract
  */
-export const encryptMessage = async (text: string, userAddress: string): Promise<string> => {
+export const encryptMessage = async (
+  text: string, 
+  userAddress: string
+): Promise<{ encryptedInput: any; handle: string }> => {
+  const encryptStartTime = Date.now()
+  console.log('[FHE Encryption] Starting encryption process...')
+  
   if (!relayerInstance) {
+    console.log('[FHE Encryption] Relayer not initialized, initializing now...')
     await initFHERelayer()
   }
 
   if (!relayerInstance) {
+    console.error('[FHE Encryption] ❌ FHE relayer not initialized')
     throw new Error('FHE relayer not initialized')
   }
+  
+  console.log('[FHE Encryption] ✅ Relayer instance ready')
 
   // Convert string to number
   // Note: For strings longer than 4 bytes, this is a lossy conversion
   // We still need localStorage to store the original text for display
+  console.log('[FHE Encryption] Converting message to number...')
   const value = stringToNumber(text)
+  console.log('[FHE Encryption] Message value:', value)
 
+  console.log('[FHE Encryption] Creating encrypted input builder...')
+  console.log('[FHE Encryption] Contract address:', CONTRACT_ADDRESS)
+  console.log('[FHE Encryption] User address:', userAddress)
   const inputBuilder = relayerInstance.createEncryptedInput(
     CONTRACT_ADDRESS,
     userAddress
   )
+  console.log('[FHE Encryption] Adding value to input builder (add32)...')
   inputBuilder.add32(value)
 
+  console.log('[FHE Encryption] Calling encrypt() - this may take a while...')
+  const encryptCallStartTime = Date.now()
   const encryptedInput = await Promise.race([
     inputBuilder.encrypt(),
     new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Encryption timeout')), 30000)
+      setTimeout(() => reject(new Error('Encryption timeout after 30 seconds')), 30000)
     )
   ]) as any
+  const encryptCallTime = Date.now() - encryptCallStartTime
+  console.log(`[FHE Encryption] ✅ encrypt() completed in ${encryptCallTime}ms`)
 
   if (!encryptedInput?.handles || encryptedInput.handles.length === 0) {
+    console.error('[FHE Encryption] ❌ Encryption failed: no handles returned')
     throw new Error('Encryption failed')
   }
+  
+  console.log('[FHE Encryption] Received', encryptedInput.handles.length, 'handle(s)')
 
-  // Return FHE handle as hex string (bytes32)
-  return encryptedInput.handles[0]
+  // Convert handle to hex string if it's Uint8Array (for localStorage compatibility)
+  const handle = encryptedInput.handles[0]
+  let handleHex: string
+  if (handle instanceof Uint8Array) {
+    // Convert Uint8Array to hex string (bytes32)
+    const hexString = Array.from(handle)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
+    handleHex = '0x' + hexString.padStart(64, '0')
+  } else {
+    handleHex = handle
+  }
+  
+  const totalEncryptTime = Date.now() - encryptStartTime
+  console.log(`[FHE Encryption] ✅✅✅ Encryption complete! Total time: ${totalEncryptTime}ms`)
+  console.log('[FHE Encryption] Handle (first 20 chars):', handleHex.substring(0, 22) + '...')
+  
+  // Return encrypted input (contains externalEuint32 and inputProof) and handle (for localStorage)
+  return {
+    encryptedInput: encryptedInput, // Contains externalEuint32 format and inputProof
+    handle: handleHex // For localStorage compatibility
+  }
 }
 
 /**
- * Decrypt FHE handle back to number (for short strings that fit in 4 bytes)
- * Note: This only works for very short strings (1-4 characters)
- * For longer strings, original text must be retrieved from localStorage
+ * Convert hex string to Uint8Array
+ */
+const hexToUint8Array = (hex: string): Uint8Array => {
+  // Remove 0x prefix if present
+  const cleanHex = hex.startsWith('0x') ? hex.slice(2) : hex
+  
+  // Ensure even length
+  const paddedHex = cleanHex.length % 2 === 0 ? cleanHex : '0' + cleanHex
+  
+  // Convert to bytes
+  const bytes = new Uint8Array(paddedHex.length / 2)
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(paddedHex.substring(i * 2, i * 2 + 2), 16)
+  }
+  
+  // Ensure exactly 32 bytes for bytes32
+  if (bytes.length !== 32) {
+    const padded = new Uint8Array(32)
+    padded.set(bytes, 32 - bytes.length)
+    return padded
+  }
+  
+  return bytes
+}
+
+/**
+ * Decrypt FHE handle back to number using relayer userDecrypt
+ * @param fheHandle The encrypted handle (bytes32 hex string) from contract
+ * @param userAddress The user address for decryption context
+ * @returns Decrypted number value
  */
 export const decryptMessageToNumber = async (fheHandle: string, userAddress: string): Promise<number | null> => {
   if (!relayerInstance) {
+    console.log('[FHE Decryption] Initializing relayer...')
     await initFHERelayer()
   }
 
   if (!relayerInstance) {
+    console.error('[FHE Decryption] FHE relayer not initialized')
     throw new Error('FHE relayer not initialized')
   }
 
   try {
-    // Note: Full decryption requires contract interaction and FHE relayer
-    // For now, this is a placeholder - actual decryption would require:
-    // 1. Call contract to get FHE handle
-    // 2. Use relayer to decrypt the handle
-    // 3. Convert number back to string
+    // Ensure handle is a hex string (starts with 0x)
+    const handleHex = fheHandle.startsWith('0x') ? fheHandle : '0x' + fheHandle
     
-    // This is a complex operation that requires contract integration
-    // For simplicity, we use localStorage for now
+    // Get signer for EIP712 signature
+    const signer = await getSigner()
     
+    // Step 1: Generate keypair
+    const keypair = relayerInstance.generateKeypair()
+    
+    // Step 2: Prepare handle-contract pairs
+    const handleContractPairs = [
+      {
+        handle: handleHex,
+        contractAddress: CONTRACT_ADDRESS,
+      },
+    ]
+    
+    // Step 3: Create EIP712 structure
+    const startTimeStamp = Math.floor(Date.now() / 1000).toString()
+    const durationDays = '10' // 10 days validity
+    const contractAddresses = [CONTRACT_ADDRESS]
+    
+    const eip712 = relayerInstance.createEIP712(
+      keypair.publicKey,
+      contractAddresses,
+      startTimeStamp,
+      durationDays,
+    )
+    
+    // Step 4: Sign the typed data
+    const signature = await signer.signTypedData(
+      eip712.domain,
+      {
+        UserDecryptRequestVerification: eip712.types.UserDecryptRequestVerification,
+      },
+      eip712.message,
+    )
+    
+    // Step 5: Call userDecrypt
+    const decryptStartTime = Date.now()
+    const result = await Promise.race([
+      relayerInstance.userDecrypt(
+        handleContractPairs,
+        keypair.privateKey,
+        keypair.publicKey,
+        signature.replace('0x', ''), // Remove 0x prefix
+        contractAddresses,
+        userAddress,
+        startTimeStamp,
+        durationDays,
+      ),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('User decryption timeout after 30 seconds')), 30000)
+      )
+    ]) as any
+
+    const decryptTime = Date.now() - decryptStartTime
+
+    // Extract decrypted value from result
+    const decryptedValue = result[handleHex]
+
+    if (decryptedValue === undefined || decryptedValue === null) {
+      console.error('[FHE Decryption] ❌ No decrypted value found for handle')
+      return null
+    }
+
+    // Convert BigInt to number if needed
+    let value: number
+    if (typeof decryptedValue === 'bigint') {
+      value = Number(decryptedValue)
+    } else if (typeof decryptedValue === 'number') {
+      value = decryptedValue
+    } else {
+      console.error('[FHE Decryption] ❌ Unexpected decrypted value type:', typeof decryptedValue)
+      return null
+    }
+
+    return value
+  } catch (error: any) {
+    console.error('[FHE Decryption] ❌ User decryption failed:', error)
+    console.error('[FHE Decryption] Error details:', {
+      message: error?.message,
+      stack: error?.stack,
+      name: error?.name
+    })
     return null
-  } catch (error) {
-    console.error('Decryption failed:', error)
+  }
+}
+
+/**
+ * Decrypt FHE handle and convert back to string message
+ * @param fheHandle The encrypted handle (bytes32 hex string) from contract
+ * @param userAddress The user address for decryption context
+ * @param forceDecrypt If true, skip localStorage cache and force decryption
+ * @returns Decrypted message string or null if decryption fails
+ */
+export const decryptMessage = async (
+  fheHandle: string, 
+  userAddress: string,
+  forceDecrypt: boolean = false
+): Promise<string | null> => {
+  try {
+    // First try to get from localStorage (faster, works for messages we sent)
+    if (!forceDecrypt) {
+      const cached = getOriginalMessageByHandle(fheHandle)
+      if (cached) {
+        return cached
+      }
+    }
+
+    // Validate handle
+    if (!fheHandle || fheHandle === '0x0000000000000000000000000000000000000000000000000000000000000000') {
+      return null
+    }
+
+    // Decrypt using relayer
+    const decryptedNumber = await decryptMessageToNumber(fheHandle, userAddress)
+    
+    if (decryptedNumber === null || decryptedNumber === undefined) {
+      return null
+    }
+
+    // Convert number back to string
+    const decryptedString = numberToString(decryptedNumber)
+
+    // If decryption returned empty or invalid string, return null
+    if (!decryptedString || decryptedString.length === 0 || decryptedString.trim().length === 0) {
+      return null
+    }
+
+    // Cache the decrypted result
+    if (typeof window !== 'undefined' && decryptedString) {
+      try {
+        const reverseKey = `fhe_chat_reverse_${fheHandle}`
+        localStorage.setItem(reverseKey, JSON.stringify({
+          message: decryptedString,
+          decryptedAt: Date.now()
+        }))
+      } catch (e) {
+        console.warn('[FHE Decryption] Failed to cache decrypted message:', e)
+      }
+    }
+
+    return decryptedString
+  } catch (error: any) {
+    console.error('[FHE Decryption] ❌ Error decrypting message:', error)
+    console.error('[FHE Decryption] Error details:', {
+      message: error?.message,
+      stack: error?.stack
+    })
     return null
   }
 }

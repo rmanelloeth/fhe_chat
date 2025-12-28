@@ -67,7 +67,8 @@ export const CHAT_ROOM_ABI = [
     inputs: [
       { internalType: "uint256", name: "roomId", type: "uint256" },
       { internalType: "uint256", name: "messageId", type: "uint256" },
-      { internalType: "bytes32", name: "newEncryptedContent", type: "bytes32" }
+      { internalType: "externalEuint32", name: "newEncryptedContent", type: "bytes32" },
+      { internalType: "bytes", name: "inputProof", type: "bytes" }
     ],
     name: "editMessage",
     outputs: [],
@@ -80,7 +81,20 @@ export const CHAT_ROOM_ABI = [
       { internalType: "uint256", name: "messageId", type: "uint256" }
     ],
     name: "getEncryptedMessage",
-    outputs: [{ internalType: "bytes32", name: "", type: "bytes32" }],
+    outputs: [{ internalType: "euint32", name: "", type: "bytes32" }],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "roomId", type: "uint256" }],
+    name: "getRoomEncryptedMessages",
+    outputs: [
+      { internalType: "uint256[]", name: "messageIds", type: "uint256[]" },
+      { internalType: "euint32[]", name: "encryptedContents", type: "bytes32[]" },
+      { internalType: "address[]", name: "senders", type: "address[]" },
+      { internalType: "uint256[]", name: "timestamps", type: "uint256[]" },
+      { internalType: "bool[]", name: "edited", type: "bool[]" }
+    ],
     stateMutability: "view",
     type: "function"
   },
@@ -142,7 +156,8 @@ export const CHAT_ROOM_ABI = [
   {
     inputs: [
       { internalType: "uint256", name: "roomId", type: "uint256" },
-      { internalType: "bytes32", name: "encryptedContent", type: "bytes32" }
+      { internalType: "externalEuint32", name: "encryptedContent", type: "bytes32" },
+      { internalType: "bytes", name: "inputProof", type: "bytes" }
     ],
     name: "sendMessage",
     outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
@@ -172,5 +187,5 @@ export const CHAT_ROOM_ABI = [
   }
 ] as const
 
-export const CHAT_CONTRACT_ADDRESS = "0xa7e798a7D544673455E3196F5E3F853c51dE4C9C" as const
+export const CHAT_CONTRACT_ADDRESS = "0xd50627e4b0E63dfBBBed2bC7d0B69cc497a99C18" as const
 
