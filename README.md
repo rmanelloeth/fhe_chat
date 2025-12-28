@@ -10,7 +10,7 @@
 
 **encrypted chatooors** is a decentralized chat application where your messages are truly private. Unlike traditional chat apps that claim privacy but store your data on central servers, this app encrypts every message using Fully Homomorphic Encryption (FHE) before it even leaves your browser, then stores it encrypted on the blockchain.
 
-**The Core Idea**: Create chat rooms, send messages, and communicate privately. All message content is encrypted using FHE before being stored on-chain as FHE handles (bytes32). Your conversations remain encrypted throughout the entire lifecycle — only authorized parties can decrypt messages using the FHE relayer.
+**The Core Idea**: Create chat rooms, send messages, and communicate privately. All message content is encrypted using FHE before being stored on-chain as euint32 (encrypted uint32). Your conversations remain encrypted throughout the entire lifecycle — only authorized parties can decrypt messages using the FHE relayer with ACL (Access Control Lists).
 
 **Why It Matters**: Traditional chat apps require trust in the platform. They can read your messages, they can be hacked, and they control your data. With FHE on blockchain, cryptographic guarantees replace trust. Messages remain encrypted until explicitly decrypted by authorized parties.
 
@@ -77,8 +77,8 @@
          │
          ▼
 ┌─────────────────┐
-│  FHE Handle     │  ← bytes32 reference
-│  (bytes32)      │
+│  euint32        │  ← Encrypted uint32 with ACL
+│  (encrypted)    │
 └────────┬────────┘
          │
          ▼
@@ -91,11 +91,11 @@
 ### Data Flow
 
 1. **Message Creation**: User types a message
-2. **FHE Encryption**: Message text is encrypted using FHE Relayer SDK
-3. **FHE Handle**: Encryption creates an FHE handle (bytes32)
-4. **On-Chain Storage**: FHE handle stored in Message struct on-chain
-5. **Retrieval**: Messages can be retrieved as FHE handles
-6. **Decryption**: FHE handles can be decrypted client-side via FHE relayer
+2. **FHE Encryption**: Message text is encrypted using FHE Relayer SDK (creates externalEuint32 + inputProof)
+3. **Contract Storage**: Contract converts externalEuint32 to euint32 and sets ACL via FHE.allow()
+4. **On-Chain Storage**: euint32 stored in Message struct on-chain
+5. **Retrieval**: Messages can be retrieved as euint32
+6. **Decryption**: euint32 can be decrypted client-side via FHE relayer (user decryption with ACL)
 
 ---
 
@@ -108,8 +108,8 @@
 | **Network** | Ethereum Sepolia Testnet |
 | **Privacy Layer** | Fully Homomorphic Encryption (FHE) via Zama FHEVM |
 | **Encryption SDK** | Zama FHEVM Relayer SDK (v0.3.0-6) |
-| **Storage** | On-chain storage of FHE handles (bytes32) |
-| **RPC Provider** | 0xrpc.io for Sepolia network access |
+| **Storage** | On-chain storage as euint32 with ACL support |
+| **RPC Provider** | sepolia.drpc.org for Sepolia network access |
 
 ### Frontend
 
@@ -125,15 +125,15 @@
 
 | Component | Details |
 |-----------|---------|
-| **Language** | Solidity ^0.8.20 |
+| **Language** | Solidity ^0.8.24 |
 | **Contract** | ChatRoom.sol |
-| **FHE Support** | All message content stored as FHE handles (bytes32) |
+| **FHE Support** | All message content stored as euint32 with FHE.allow() ACL |
 
 ---
 
 ## 📋 Contract Details
 
-**Contract Address**: `0xa7e798a7D544673455E3196F5E3F853c51dE4C9C`  
+**Contract Address**: `0xd50627e4b0E63dfBBBed2bC7d0B69cc497a99C18`  
 **Network**: Sepolia Testnet  
 **Deployer**: `0x017e4229b9C37BdEDfF92FB00a7Cb79EA1876a7a`
 
@@ -166,17 +166,17 @@
 
 #### Message Management
 
-- `sendMessage(uint256 roomId, bytes32 encryptedContent)`  
-  Send an encrypted message (FHE handle)
+- `sendMessage(uint256 roomId, externalEuint32 encryptedContent, bytes inputProof)`  
+  Send an encrypted message (externalEuint32 converted to euint32 with ACL)
 
-- `editMessage(uint256 roomId, uint256 messageId, bytes32 newEncryptedContent)`  
-  Edit a message with new FHE-encrypted content
+- `editMessage(uint256 roomId, uint256 messageId, externalEuint32 newEncryptedContent, bytes inputProof)`  
+  Edit a message with new FHE-encrypted content (euint32 with ACL)
 
 - `getMessageMetadata(uint256 roomId, uint256 messageId)`  
   Get message metadata (sender, timestamp, edited status)
 
 - `getEncryptedMessage(uint256 roomId, uint256 messageId)`  
-  Get FHE handle for encrypted message content
+  Get euint32 for encrypted message content (supports ACL decryption)
 
 - `getRoomMessageCount(uint256 roomId)`  
   Get number of messages in a room
@@ -190,20 +190,18 @@
 **Fully Homomorphic Encryption (FHE)** allows computations to be performed on encrypted data without decrypting it first. In this application:
 
 1. **Message Text** (plaintext) is encrypted client-side using Zama FHEVM Relayer SDK
-2. **Encryption Result** is an FHE handle (bytes32) — a reference to encrypted data
-3. **FHE Handle** is stored on-chain instead of plaintext message
-4. **Retrieval** returns FHE handle, which can be decrypted via FHE relayer
+2. **Encryption Result** is externalEuint32 + inputProof — external encrypted format
+3. **Contract Conversion** converts externalEuint32 to euint32 and sets ACL via FHE.allow()
+4. **On-Chain Storage** stores euint32 instead of plaintext message
+5. **Retrieval** returns euint32, which can be decrypted via FHE relayer (user decryption with ACL)
 
 ### Encryption Process
 
 ```typescript
 // Client-side encryption example
-const encryptMessage = async (text: string, userAddress: string): Promise<string> => {
-  // Convert string to number via hashing
-  const hash = ethers.keccak256(ethers.toUtf8Bytes(text))
-  const hashBigInt = BigInt(hash)
-  const maxValue = BigInt(2 ** 31 - 1)
-  const value = Number(hashBigInt % maxValue)
+const encryptMessage = async (text: string, userAddress: string) => {
+  // Convert string to number
+  const value = stringToNumber(text)
 
   // Create encrypted input via FHE relayer
   const inputBuilder = relayerInstance.createEncryptedInput(
@@ -212,9 +210,12 @@ const encryptMessage = async (text: string, userAddress: string): Promise<string
   )
   inputBuilder.add32(value)
 
-  // Encrypt and get handle
+  // Encrypt and get externalEuint32 + inputProof
   const encryptedInput = await inputBuilder.encrypt()
-  return encryptedInput.handles[0]  // Returns bytes32 FHE handle
+  return {
+    encryptedInput: encryptedInput,  // Contains externalEuint32 format + inputProof
+    handle: encryptedInput.handles[0]  // For localStorage compatibility
+  }
 }
 ```
 
@@ -224,20 +225,25 @@ const encryptMessage = async (text: string, userAddress: string): Promise<string
 struct Message {
     address sender;
     uint256 roomId;
-    bytes32 encryptedContent;  // FHE handle for encrypted message
+    euint32 encryptedContent;  // Encrypted message content with ACL support
     uint256 timestamp;
     uint256 messageId;
     bool edited;
     uint256 editTimestamp;
 }
+
+// In sendMessage and editMessage:
+euint32 content = FHE.fromExternal(encryptedContent, inputProof);
+FHE.allow(content, msg.sender);  // Set ACL for user decryption
 ```
 
 ### Privacy Guarantees
 
 ✅ **No Plaintext Storage**: Original message text never stored on-chain  
-✅ **Encrypted Handles**: Only FHE handles (references) are stored  
+✅ **Encrypted Storage**: Only euint32 (encrypted values) are stored  
+✅ **ACL Support**: FHE.allow() sets access control for user decryption  
 ✅ **Client-Side Encryption**: Messages encrypted before blockchain submission  
-✅ **Client-Side Decryption**: Messages decrypted via FHE relayer (when implemented)  
+✅ **Client-Side Decryption**: Messages decrypted via FHE relayer with user decryption  
 ✅ **Permanent Storage**: Messages stored permanently on blockchain in encrypted form
 
 ---
@@ -261,9 +267,9 @@ struct Message {
    
    Create `.env.local`:
    ```env
-   SEPOLIA_RPC_URL=https://0xrpc.io/sep
-   NEXT_PUBLIC_SEPOLIA_RPC_URL=https://0xrpc.io/sep
-   NEXT_PUBLIC_CHAT_CONTRACT_ADDRESS=0xa7e798a7D544673455E3196F5E3F853c51dE4C9C
+   SEPOLIA_RPC_URL=https://sepolia.drpc.org
+   NEXT_PUBLIC_SEPOLIA_RPC_URL=https://sepolia.drpc.org
+   NEXT_PUBLIC_CHAT_CONTRACT_ADDRESS=0xd50627e4b0E63dfBBBed2bC7d0B69cc497a99C18
    NEXT_PUBLIC_FHEVM_CONTRACT_ADDRESS=0x0000000000000000000000000000000000000000
    NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_id
    PRIVATE_KEY=your_private_key_for_deployment
@@ -362,8 +368,8 @@ MAIN/
 - ⚠️ FHE operations require relayer connection
 - ⚠️ Gas costs vary based on network conditions
 - ⚠️ Experimental technology — use at your own risk
-- ℹ️ Message content encrypted but FHE handles visible on-chain (cannot decrypt without relayer)
-- ℹ️ Full message decryption requires FHE relayer integration on client side
+- ℹ️ Message content encrypted as euint32 on-chain (cannot decrypt without relayer and ACL)
+- ℹ️ Message decryption requires FHE relayer integration with user decryption (ACL enabled)
 
 ---
 
